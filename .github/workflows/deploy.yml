@@ -1,0 +1,50 @@
+name: Deploy to VPS
+# Se déclenche à chaque push sur main
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    name: Build and Deploy
+    # Runner fourni par GitHub gratuitement
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Récupère le code du repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+      # 2. Installe .NET sur le runner GitHub
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      # 3. Restaure les packages NuGet
+      - name: Restore packages
+        run: dotnet restore DevopsApi/DevopsApi.csproj
+      # 4. Build (vérifie qu'il n'y a pas d'erreurs)
+      - name: Build
+        run: dotnet build DevopsApi.csproj -c Release --no-restore
+      # 5. Publish — crée les binaires de production
+      - name: Publish
+        run: dotnet publish DevopsApi/DevopsApi.csproj -c Release -o ./publish
+      # 6. Configure la clé SSH pour se connecter au VPS
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      # 7. Copie les fichiers publiés sur le VPS via rsync
+      - name: Copy files to VPS
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }}" \
+            ./publish/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/devopsapi/
+      # 8. Redémarre le service sur le VPS
+      - name: Restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -p ${{ secrets.VPS_PORT }} \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "systemctl restart devopsapi && systemctl status devopsapi"
