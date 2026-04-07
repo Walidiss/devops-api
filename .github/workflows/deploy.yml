@@ -39,7 +39,7 @@ jobs:
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_PORT }}" \
             ./publish/ \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/devopsapi/
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/devops-api/
       # 8. Redémarre le service sur le VPS
       - name: Restart service
         run: |
