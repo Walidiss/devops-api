@@ -19,13 +19,13 @@ jobs:
           dotnet-version: '10.0.x'
       # 3. Restaure les packages NuGet
       - name: Restore packages
-        run: dotnet restore DevopsApi/DevopsApi.csproj
+        run: dotnet restore  "**/*.csproj"
       # 4. Build (vérifie qu'il n'y a pas d'erreurs)
       - name: Build
         run: dotnet build DevopsApi.csproj -c Release --no-restore
       # 5. Publish — crée les binaires de production
       - name: Publish
-        run: dotnet publish DevopsApi/DevopsApi.csproj -c Release -o ./publish
+        run: dotnet publish  "**/*.csproj" -c Release -o ./publish
       # 6. Configure la clé SSH pour se connecter au VPS
       - name: Setup SSH
         run: |
