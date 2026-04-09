@@ -1,9 +1,27 @@
 var builder = WebApplication.CreateBuilder(args);
+
 var app = builder.Build();
+
 app.MapGet("/api/hello", () => new {
-message = "DevOps fonctionne version 2",
-timestamp = DateTime.UtcNow,
-server = Environment.MachineName
+
+    message = "DevOps v4 — conteneurisé Docker CI/CD !",
+
+    timestamp = DateTime.UtcNow,
+
+    server = Environment.MachineName
+
 });
+
+app.MapGet("/api/config", () => new {
+
+    environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+
+    dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "non configuré",
+
+    version = "2.0.0"
+
+});
+
 app.MapGet("/health", () => "OK");
+
 app.Run();
