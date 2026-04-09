@@ -56,6 +56,9 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             echo "📦 Pull latest image..."
             docker pull ${{ env.IMAGE_NAME }}:latest
+            echo "🛑 Stop & remove tous les containers sur le port 8080..."
+            docker ps -q --filter "publish=8080" | xargs -r docker stop
+            docker ps -aq --filter "publish=8080" | xargs -r docker rm
             echo "🛑 Stop old container..."
             docker stop devopsapi || true
             echo "🗑️ Remove old container..."
