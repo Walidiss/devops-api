@@ -4,7 +4,7 @@ var app = builder.Build();
 
 app.MapGet("/api/hello", () => new {
 
-    message = "DevOps v5 — conteneurisé Docker CI/CD !",
+    message = "DevOps v6 — conteneurisé Docker CI/CD !",
 
     timestamp = DateTime.UtcNow,
 
