@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+
+  api:
+    build: .
+    container_name: devopsapi
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DB_HOST=sqlserver
+    depends_on:
+      - sqlserver
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=DevOps@2026!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+
+networks:
+  app-network:
+    driver: bridge
