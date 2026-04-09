@@ -5,11 +5,11 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 # Copie d'abord uniquement le .csproj pour profiter du cache Docker
 # Si le code change mais pas les dépendances → restore pas refait
-COPY DevopsApi/DevopsApi.csproj DevopsApi/
-RUN dotnet restore DevopsApi/DevopsApi.csproj
+COPY DevopsApi.csproj .
+RUN dotnet restore DevopsApi.csproj
 # Maintenant copie tout le reste du code
 COPY . .
-RUN dotnet publish DevopsApi/DevopsApi.csproj \
+RUN dotnet publish DevopsApi.csproj \
     -c Release \
     -o /app/publish \
     --no-restore
