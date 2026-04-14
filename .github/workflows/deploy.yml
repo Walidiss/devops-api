@@ -1,26 +1,22 @@
-name: 🚀 Build & Deploy Docker to GHCR + VPS
-
+name: 🚀 Build & Deploy Docker to GHCR + K8s
 on:
   push:
     branches:
       - main
-
 env:
   REGISTRY: ghcr.io
-  # IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/devopsapi
-
 jobs:
   build-and-deploy:
-    name: 🐳 Build & Push + 🚀 Deploy
+    name: 🐳 Build & Push + ☸️ Deploy to K8s
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-    # ✅ Calcul du nom d'image en lowercase
+
+      # ✅ Calcul du nom d'image en lowercase
       - name: 🔡 Set image name (lowercase)
         run: echo "IMAGE_NAME=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/devopsapi" >> $GITHUB_ENV
 
@@ -45,28 +41,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 🚀 Deploy to VPS
+      # ✅ Installation de kubectl sur le runner GitHub Actions
+      - name: 🔧 Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: ☸️ Deploy to K8s
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.VPS_PORT }} \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            echo "📦 Pull latest image..."
-            docker pull ${{ env.IMAGE_NAME }}:latest
-            echo "🛑 Stop & remove tous les containers sur le port 8080..."
-            docker ps -q --filter "publish=8080" | xargs -r docker stop
-            docker ps -aq --filter "publish=8080" | xargs -r docker rm
-            echo "🛑 Stop old container..."
-            docker stop devopsapi || true
-            echo "🗑️ Remove old container..."
-            docker rm devopsapi || true
-            echo "🚀 Run new container..."
-            docker run -d \
-              --name devopsapi \
-              --restart unless-stopped \
-              -p 8080:8080 \
-              ${{ env.IMAGE_NAME }}:latest
-          EOF
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+
+          # Met à jour l'image → K8s fait le rolling update automatiquement
+          # tag SHA = chaque déploiement traçable et réversible (kubectl rollout undo)
+          kubectl set image deployment/devopsapi \
+            devopsapi=${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -n production
+
+          # Attend que tous les nouveaux Pods soient Ready avant de valider le job
+          kubectl rollout status deployment/devopsapi -n production --timeout=120s
