@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devopsapi
+  namespace: production      # créé à l'étape 5
+  labels:
+    app: devopsapi
+spec:
+  replicas: 2                  # 2 instances → zéro downtime
+  selector:
+    matchLabels:
+      app: devopsapi
+  strategy:
+    type: RollingUpdate          # mise à jour sans interruption
+    rollingUpdate:
+      maxUnavailable: 0         # jamais 0 pod dispo pendant update
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: devopsapi
+    spec:
+      containers:
+      - name: devopsapi
+        image: ghcr.io/walidiss/devopsapi:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        resources:               # limites mémoire/CPU
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:           # K8s redémarre si pas de réponse
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:          # trafic envoyé seulement si prêt
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10

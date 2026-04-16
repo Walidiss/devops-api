@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devopsapi-ingress
+  namespace: production
+  annotations:
+    # TLS Let's Encrypt automatique via Traefik
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: api.204.168.203.142.nip.io  # ou api.TON-IP.nip.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: devopsapi-svc   # le Service de l'étape 3
+            port:
+              number: 80

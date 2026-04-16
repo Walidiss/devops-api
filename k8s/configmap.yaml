@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devopsapi-config
+  namespace: production
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  APP_VERSION: "3.0.0"
+  LOG_LEVEL: "Information"
