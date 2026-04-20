@@ -1,0 +1,113 @@
+# .github/workflows/terraform-check.yml
+# Ce fichier dit à GitHub Actions : "fais ça automatiquement quand quelqu'un pousse"
+
+name: Terraform Check
+# ↑ Le nom affiché dans l'onglet "Actions" de ton repo GitHub
+#   Tu verras "Terraform Check" dans la liste des workflows
+
+on:
+# ↑ "on" = les événements qui déclenchent ce workflow
+#   Sans "on", le workflow ne démarre jamais
+
+  push:
+    paths: ['terraform/**']
+    # ↑ "push" = quand quelqu'un fait git push
+    # ↑ "paths" = FILTRE — le workflow ne démarre QUE si un fichier
+    #   dans le dossier terraform/ a changé
+    #   Sans ce filtre : le workflow démarrerait à chaque push, même pour
+    #   modifier un README ou un fichier C# → perte de temps et de crédits CI
+
+  pull_request:
+    paths: ['terraform/**']
+    # ↑ "pull_request" = quand quelqu'un crée ou met à jour une Pull Request
+    #   Utile en équipe : les changements Terraform sont vérifiés avant le merge
+    #   En solo : tu peux le laisser, ça ne déclenche rien si tu pushes direct sur main
+
+jobs:
+# ↑ Un workflow est composé de "jobs" (tâches)
+#   Les jobs peuvent tourner en parallèle ou en séquence
+
+  terraform:
+    # ↑ Le nom de notre job — visible dans les logs GitHub Actions
+    #   On aurait pu l'appeler "check" ou "validate" — "terraform" est clair
+
+    runs-on: ubuntu-latest
+    # ↑ Sur quelle machine GitHub doit faire tourner ce job ?
+    #   "ubuntu-latest" = une VM Linux Ubuntu fournie gratuitement par GitHub
+    #   Cette VM est vierge à chaque exécution — rien n'est installé par défaut
+    #   C'est pour ça qu'on doit installer Terraform explicitement (étape suivante)
+    #   Autres options : windows-latest, macos-latest (mais Linux = plus standard pour DevOps)
+
+    steps:
+    # ↑ La liste des étapes à exécuter dans l'ordre, sur cette VM
+
+      - uses: actions/checkout@v4
+        # ↑ "uses" = utilise une Action GitHub pré-faite (comme un plugin)
+        # ↑ "actions/checkout" = Action officielle GitHub qui clone ton repo
+        #   sur la VM Ubuntu → sans ça, la VM ne verrait pas tes fichiers .tf
+        # ↑ "@v4" = version 4 de cette action — toujours préciser la version
+        #   pour éviter les surprises si l'action change
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        # ↑ "name" = label de l'étape — affiché dans les logs GitHub Actions
+        # ↑ "hashicorp/setup-terraform" = Action officielle de HashiCorp
+        #   (les créateurs de Terraform) qui installe Terraform sur la VM Ubuntu
+        # ↑ "@v3" = version 3 de cette action
+        # Sans "with: terraform_version:", installe la dernière version stable
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive terraform/
+        # ↑ "run" = commande shell à exécuter sur la VM Ubuntu
+        #
+        # "terraform fmt" = formate automatiquement le code Terraform
+        #   (alignement des =, indentation, espaces)
+        # "-check" = MODE VÉRIFICATION — ne modifie RIEN
+        #   Retourne une erreur si le code n'est pas formaté correctement
+        #   Sans "-check" : terraform fmt modifie les fichiers (utile en local)
+        #   Avec "-check" : juste vérifie et échoue si pas formaté (utile en CI)
+        # "-recursive" = vérifie tous les sous-dossiers récursivement
+        # "terraform/" = dossier racine à partir duquel chercher
+        #
+        # Pourquoi vérifier le formatage ?
+        # Convention : tout le code Terraform doit être formaté avec "terraform fmt"
+        # Si quelqu'un oublie → l'étape échoue → il doit formater avant de merger
+
+      - name: Terraform Validate Azure
+        working-directory: terraform/azure
+        # ↑ "working-directory" = dans quel dossier exécuter les commandes "run"
+        #   Equivalent de faire "cd terraform/azure" avant les commandes
+        #   Terraform validate doit être lancé depuis le dossier du projet
+        #   (là où sont les fichiers main.tf, variables.tf, etc.)
+
+        env:
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
+          # ↑ "env" = variables d'environnement injectées pour ces commandes
+          # ↑ "${{ secrets.NOM_DU_SECRET }}" = syntaxe GitHub Actions pour lire un secret
+          #   GitHub remplace cette expression par la vraie valeur au moment de l'exécution
+          #   Dans les logs, ces valeurs apparaissent masquées : ***
+          # ↑ Le provider Terraform Azure (azurerm) reconnaît automatiquement les
+          #   variables ARM_* → pas besoin de les déclarer dans le code Terraform
+          #   C'est exactement comme si tu avais un Service Principal configuré
+
+        run: |
+          terraform init
+          # ↑ "|" après "run:" = commandes multiligne (chaque ligne est exécutée dans l'ordre)
+          # ↑ "terraform init" = initialise Terraform, télécharge les providers
+          #   Même si tu n'as pas de backend configuré, init est nécessaire pour validate
+          #   Sur la VM vierge, le dossier .terraform/ n't pas — init le recrée
+
+          terraform validate
+          # ↑ Vérifie que la SYNTAXE du code Terraform est correcte
+          #   - Les accolades {} sont bien fermées
+          #   - Les types de variables correspondent
+          #   - Les références (var.xxx, module.xxx) pointent vers quelque chose qui existe
+          #
+          # Ce que validate NE vérifie PAS :
+          #   - Si les ressources peuvent vraiment être créées chez Azure
+          #   - Si tu as les permissions nécessaires
+          #   - Si les valeurs dans tfvars sont correctes
+          #   Pour ça, il faudrait un "terraform plan" (plus avancé)

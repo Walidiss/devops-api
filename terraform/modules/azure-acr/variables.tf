@@ -1,7 +1,7 @@
-variable "name"                { type = string }
-variable "resource_group_name"  { type = string }
-variable "location"            { type = string }
+variable "name" { type = string }
+variable "resource_group_name" { type = string }
+variable "location" { type = string }
 variable "sku" {
   type    = string
-  default = "Basic"   # Basic par défaut = gratuit
+  default = "Basic" # Basic par défaut = gratuit
 }

@@ -1,4 +1,4 @@
-output "login_server"   { value = azurerm_container_registry.this.login_server }
+output "login_server" { value = azurerm_container_registry.this.login_server }
 output "admin_username" {
   value     = azurerm_container_registry.this.admin_username
   sensitive = true
