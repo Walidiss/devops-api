@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devopsapi-alerts
+  namespace: monitoring
+  labels:
+    release: monitoring    # doit matcher le nom de la release Helm
+spec:
+  groups:
+  - name: devopsapi
+    rules:
+    # Alerte si l'app est down
+    - alert: DevopsApiDown
+      expr: |
+        kube_deployment_status_replicas_available{
+              namespace="production",
+              deployment="devopsapi"
+        } == 0
+      for: 1m           # déclenche après 1 min
+      labels:
+        severity: critical
+      annotations:
+        summary: "DevopsApi est down"
+        description: "L'app devopsapi ne répond plus depuis 1 minute"
+    # Alerte si RAM > 200MB
+    - alert: HighMemoryUsage
+      expr: |
+        container_memory_usage_bytes{
+          namespace="production",
+          container="devopsapi"
+        } > 200 * 1024 * 1024
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Consommation mémoire élevée"
+        description: "devopsapi consomme plus de 200MB depuis 5 minutes"

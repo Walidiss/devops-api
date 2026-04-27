@@ -1,0 +1,35 @@
+# Configuration kube-prometheus-stack pour K3s
+grafana:
+  enabled: true
+  adminPassword: "DevOps@2024!"  # change ça
+  service:
+    type: ClusterIP            # accès via port-forward ou Ingress
+  persistence:
+    enabled: true             # dashboards persistants
+    size: 1Gi
+prometheus:
+  prometheusSpec:
+    retention: 7d             # garde 7 jours de métriques
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"       # important sur VPS 4GB
+        cpu: "200m"
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+alertmanager:
+  enabled: true
+# Désactive kubelet metrics — pas compatible K3s par défaut
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false

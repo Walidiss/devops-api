@@ -1,5 +1,15 @@
-var builder = WebApplication.CreateBuilder(args);
+using OpenTelemetry.Metrics;
 
+var builder = WebApplication.CreateBuilder(args);
+// OpenTelemetry — métriques ASP.NET Core
+builder.Services.AddOpenTelemetry()
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()  // requêtes HTTP auto
+            .AddRuntimeInstrumentation()     // GC, threads .NET
+            .AddPrometheusExporter();        // expose /metrics
+    });
 var app = builder.Build();
 
 app.MapGet("/api/hello", () => new {

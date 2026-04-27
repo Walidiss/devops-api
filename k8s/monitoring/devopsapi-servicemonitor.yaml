@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: devopsapi-monitor
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames: [production]
+  selector:
+    matchLabels:
+      app: devopsapi
+  endpoints:
+  - port: http
+    path: /metrics     # endpoint exposé par OpenTelemetry
+    interval: 15s
