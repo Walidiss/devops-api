@@ -26,6 +26,10 @@ prometheus:
               storage: 5Gi
 alertmanager:
   enabled: true
+  alertmanagerSpec:              
+    secrets:
+      - alertmanager-slack       # le secret créé par le pipeline
+      
 # Désactive kubelet metrics — pas compatible K3s par défaut
 kubeControllerManager:
   enabled: false
