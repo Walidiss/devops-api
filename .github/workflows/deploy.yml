@@ -47,7 +47,7 @@ jobs:
 
       - name: ☸️ Deploy to K8s
         run: |
-          mkdir -p ~/.kube
+          mkdir -p ~/.kube 
           echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
 
           
@@ -55,7 +55,7 @@ jobs:
           kubectl create secret generic alertmanager-slack \
             --from-literal=webhook-url='${{ secrets.SLACK_WEBHOOK_URL }}' \
             --namespace monitoring \
-            --dry-run=client -o yaml | kubectl apply -f 
+            --dry-run=client -o yaml | kubectl apply -f -
           # Met à jour l'image → K8s fait le rolling update automatiquement
           # tag SHA = chaque déploiement traçable et réversible (kubectl rollout undo)
           kubectl set image deployment/devopsapi \
